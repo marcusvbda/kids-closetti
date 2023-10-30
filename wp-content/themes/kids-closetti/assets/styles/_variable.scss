@@ -1,0 +1,25 @@
+@font-face {
+  font-family: "Montserrat";
+  src: url("Montserrat-normal.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Nexa-Bold";
+  src: url("Nexa%20Bold.otf") format("opentype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Nexa";
+  src: url("Nexa%20Light.otf") format("opentype");
+  font-weight: lighter;
+  font-style: normal;
+}
+
+$breakpoint: 800px;
+$montserrat: "Montserrat", sans-serif !important;
+$nexa: "Nexa", sans-serif !important;
+$nexaBold: "Nexa-Bold", sans-serif !important;

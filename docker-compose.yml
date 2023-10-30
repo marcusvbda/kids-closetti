@@ -1,0 +1,43 @@
+version: "3"
+services:
+  web:
+    container_name: ${WEB_IMAGE_NAME}
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+  db:
+    container_name: ${DB_IMAGE_NAME}
+    restart: unless-stopped
+    image: mysql:8.0
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_PASSWORD: ""
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ${PHPMYADMIN_IMAGE_NAME}
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+
+networks:
+  web:
+    external: true
+volumes:
+  data:
+    external: true
