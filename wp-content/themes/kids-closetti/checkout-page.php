@@ -13,6 +13,7 @@
     <link rel="icon" href="<?php themePath('/favicon.ico'); ?>" type="image/x-icon">
     <link rel="shortcut icon" href="<?php themePath('/favicon.ico'); ?>" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 
 </html>

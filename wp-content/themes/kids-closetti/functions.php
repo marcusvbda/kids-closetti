@@ -1,13 +1,12 @@
 <?php
-// require_once 'vendor/autoload.php';
+require_once 'vendor/autoload.php';
+
+use MercadoPago\Client\Payment\PaymentClient;
+use MercadoPago\Exceptions\MPApiException;
+use MercadoPago\MercadoPagoConfig;
+
 define('THEME_PATH', get_template_directory_uri());
-define('RECAPTCHA_SCORE', +getenv("RECAPTCHA_SCORE"));
-define('RECAPTCHA_SECRET_TOKEN', getenv('RECAPTCHA_SECRET_TOKEN'));
-define('PAGARME_SECRET_KEY', getenv("PAGARME_SECRET_KEY"));
-define('PAGARME_API_URL', getenv("PAGARME_API_URL"));
-define('PLANS_IDS', [
-    'DEFAULT' => +getenv("PAGARME_PLAN_ID_DEFAULT"),
-]);
+define('MP_TOKEN', getenv("MP_ACCESS_TOKEN"));
 
 function themePath($path)
 {
@@ -33,7 +32,6 @@ function loopToArray($field, $subField)
 
 function loopToString($field, $subField, $separator = ",")
 {
-
     echo implode($separator, loopToArray($field, $subField));
 }
 
@@ -52,54 +50,24 @@ function customize_acf_wysiwyg_toolbar($toolbars)
 }
 add_filter('acf/fields/wysiwyg/toolbars', 'customize_acf_wysiwyg_toolbar');
 
-function register_api_subscription()
+function register_api_pagto()
 {
-    register_rest_route('api', '/subscription', array(
+    register_rest_route('api', '/pgto', array(
         'methods' => 'POST',
-        'callback' => 'api_subscription',
+        'callback' => 'api_pagto',
         'permission_callback' => '__return_true',
     ));
 }
 
-add_action('rest_api_init', 'register_api_subscription');
+add_action('rest_api_init', 'register_api_pagto');
 
-function get_pagarme_route($path)
+function make_pgto_client()
 {
-    return PAGARME_API_URL . "/$path";
+    MercadoPagoConfig::setAccessToken(MP_TOKEN);
+    return new PaymentClient();
 }
 
-function validate_recaptcha($token)
-{
-    $recaptcha_secret = RECAPTCHA_SECRET_TOKEN;
-    $recaptcha_token = $token;
-
-    $recaptcha_url = 'https://www.google.com/recaptcha/api/siteverify';
-    $recaptcha_data = [
-        'secret' => $recaptcha_secret,
-        'response' => $recaptcha_token,
-    ];
-
-    $options = [
-        'http' => [
-            'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
-            'method' => 'POST',
-            'content' => http_build_query($recaptcha_data),
-        ],
-    ];
-
-    $context = stream_context_create($options);
-    $recaptcha_result = file_get_contents($recaptcha_url, false, $context);
-    $recaptcha_result = json_decode($recaptcha_result);
-
-    return $recaptcha_result?->score >= RECAPTCHA_SCORE;
-}
-
-function make_pagarme_client()
-{
-    return new PagarMe\Client(PAGARME_SECRET_KEY);
-}
-
-function make_subscription_payload($body)
+function make_pagto_payload($body)
 {
     return [
         'payment_method' => 'credit_card',
@@ -115,7 +83,7 @@ function make_subscription_payload($body)
     ];
 }
 
-function api_subscription($request)
+function api_pagto($request)
 {
     try {
         $body = json_decode($request->get_body());
@@ -126,17 +94,29 @@ function api_subscription($request)
             ];
         }
 
-        $pagarme = make_pagarme_client();
-        $payload = make_subscription_payload($body);
-        $subscription = $pagarme->subscriptions()->create($payload);
+        $client = make_pgto_client();
+        $request = [
+            "transaction_amount" => 100,
+            "token" => "YOUR_CARD_TOKEN",
+            "description" => "description",
+            "installments" => 1,
+            "payment_method_id" => "visa",
+            "payer" => [
+                "email" => "user@test.com",
+            ]
+        ];
+        $payment = $client->create($request);
         return [
             "status" => true,
-            "data" => $subscription
+            "data" => $payment
         ];
-    } catch (Exception $e) {
+    } catch (MPApiException $e) {
+        $message =  "Status code: " . $e->getApiResponse()->getStatusCode() . "\n";
+        $message .= "Content: " . $e->getApiResponse()->getContent() . "\n";
         return [
             "status" => false,
-            "error" => $e->getMessage()
+            "error" => $e->getMessage(),
+            "message" => $message
         ];
     }
 }
